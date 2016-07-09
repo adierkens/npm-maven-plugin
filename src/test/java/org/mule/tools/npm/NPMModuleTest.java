@@ -10,6 +10,7 @@ package org.mule.tools.npm;
 
 
 import org.apache.maven.plugin.logging.Log;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
@@ -21,16 +22,21 @@ import static org.mockito.Mockito.mock;
 
 public class NPMModuleTest {
 
+	@Before
+	public void setUp() {
+		NPMModule.npmUrl = "http://registry.npmjs.org/%s";
+	}
+	
     @Test
-    public void testDownloadLess() throws Exception {
-        NPMModule npmModule = NPMModule.fromNameAndVersion(mock(Log.class), "less", "1.0.32");
-        npmModule.saveToFile(new File("target/less-test"));
+    public void testDownloadColors() throws Exception {
+        NPMModule npmModule = NPMModule.fromNameAndVersion(mock(Log.class), "colors", "1.1.2");
+        npmModule.saveToFile(new File("target/colors-test"));
     }
 
     @Test
-    public void testDownloadRecess() throws Exception {
-        NPMModule npmModule2 = NPMModule.fromName(mock(Log.class), "recess");
-        npmModule2.saveToFileWithDependencies(new File("target/recess-test"));
+    public void testDownloadUnderscore() throws Exception {
+        NPMModule npmModule2 = NPMModule.fromName(mock(Log.class), "underscore");
+        npmModule2.saveToFileWithDependencies(new File("target/underscore-test"));
     }
 
     @Test

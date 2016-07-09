@@ -11,14 +11,15 @@ package org.mule.tools.npm;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.github.zafarkhaja.semver.Version;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.settings.Proxy;
 import org.codehaus.plexus.archiver.tar.TarGZipUnArchiver;
+import org.codehaus.plexus.interpolation.util.StringUtils;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -29,7 +30,7 @@ import java.util.*;
 
 public class NPMModule {
 
-    public static String npmUrl = "http://registry.npmjs.org/%s/%s";
+    public static String npmUrl = "http://registry.npmjs.org/%s";
     public static Proxy proxy = null;
 
     private String name;
@@ -102,6 +103,11 @@ public class NPMModule {
         InputStream is = null;
         File outputFolderFileTmp = new File(file, name + "_tmp");
         File outputFolderFile = new File(file, name);
+        String fileName = name;
+        if (fileName.contains("/")) {
+        	// Case for scoped packages, strip off the scope
+        	fileName = fileName.split("/")[1];
+        }
 
         if ( outputFolderFile.exists() ) {
             //Already downloaded nothing to do
@@ -111,7 +117,7 @@ public class NPMModule {
 
         outputFolderFileTmp.mkdirs();
 
-        File tarFile = new File(outputFolderFileTmp, name + "-" + version + ".tgz");
+        File tarFile = new File(outputFolderFileTmp, fileName + "-" + version + ".tgz");
         ProgressListener progressListener = new ProgressListener(log);
         log.debug("Downloading " + this.name + ":" + this.version);
 
@@ -184,7 +190,7 @@ public class NPMModule {
 
             String versionSpecification = ((String) dependency.getValue());
             Version resolvedVersion = resolveVersion(dependencyName, versionSpecification);
-
+            
             try {
                 dependencies.add(fromNameAndVersion(log, dependencyName, resolvedVersion.toString()));
             } catch (Exception e) {
@@ -198,7 +204,7 @@ public class NPMModule {
      * resolve the newest version that matches the search criteria
      */
     private Version resolveVersion(String dependencyName, String versionSpecification) throws IOException {
-        Set allPotentialVersions = downloadMetadataList(dependencyName);
+        Set allPotentialVersions = downloadMetadataList(dependencyName).keySet();
         ArrayList matchingVersions = new ArrayList();
         for (Object o : allPotentialVersions) {
 			String potentialVersionString = o.toString();
@@ -211,15 +217,19 @@ public class NPMModule {
         return (Version)matchingVersions.get(matchingVersions.size()-1);
     }
 
-    public static Set downloadMetadataList(String name) throws IOException, JsonParseException {
-        URL dl = new URL(String.format(npmUrl,name,""));
+    public static Map downloadMetadataList(String name) throws IOException, JsonParseException {
+    	// Don't use URLEncoder.encode() utility because we want to keep the @ on scoped packages
+    	String URLEncodedName = StringUtils.replace(name, "/", "%2F");
+        URL dl = new URL(String.format(npmUrl,URLEncodedName));
         ObjectMapper objectMapper = new ObjectMapper();
         Map allVersionsMetadata = objectMapper.readValue(loadTextFromUrl(dl),Map.class);
-        return ((Map) allVersionsMetadata.get("versions")).keySet();
+        return ((Map) allVersionsMetadata.get("versions"));
     }
 
-    private Map downloadMetadata(String name, String version) throws IOException, JsonParseException {
-        return downloadMetadata(new URL(String.format(npmUrl,name,version != null ? version : "latest")));
+    private Map downloadMetadata(String name) throws IOException, JsonParseException {
+    	// Don't use URLEncoder.encode() utility because we want to keep the @ on scoped packages
+    	String URLEncodedName = StringUtils.replace(name, "/", "%2F");
+        return downloadMetadata(new URL(String.format(npmUrl,URLEncodedName)));
     }
 
     public static Map downloadMetadata(URL dl) throws IOException {
@@ -238,13 +248,21 @@ public class NPMModule {
     private void downloadModule() throws MojoExecutionException {
 
         try {
-            Map jsonMap = downloadMetadata(name,version);
-
-            Map distMap = (Map) jsonMap.get("dist");
+            Map versionMap = downloadMetadataList(name);
+            
+            // Grab latest version if one isn't specified
+            if (version == null) {
+            	this.version = (String) ((Map) downloadMetadata(name).get("dist-tags")).get("latest");
+            }
+            // Otherwise resolve the version
+            else {
+            	this.version = resolveVersion(name, version).toString();
+            }
+            Map versionOfModule = (Map) versionMap.get(version);
+            Map distMap = (Map) versionOfModule.get("dist");
             this.downloadURL = new URL((String) distMap.get("tarball"));
-            this.version = (String) jsonMap.get("version");
 
-            Map dependenciesMap = (Map) jsonMap.get("dependencies");
+            Map dependenciesMap = (Map) versionOfModule.get("dependencies");
 
             if (dependenciesMap != null) {
                 downloadDependencies(dependenciesMap);
@@ -265,7 +283,8 @@ public class NPMModule {
 
     public static NPMModule fromQueryString(Log log, String nameAndVersion) throws MojoExecutionException {
         String[] splitNameAndVersion = nameAndVersion.split(":");
-        return fromNameAndVersion(log, splitNameAndVersion[0], splitNameAndVersion[1]);
+        String versionToSend = splitNameAndVersion.length == 2 ? splitNameAndVersion[1] : null;
+        return fromNameAndVersion(log, splitNameAndVersion[0], versionToSend);
     }
 
     public static NPMModule fromNameAndVersion(Log log, String name, String version)

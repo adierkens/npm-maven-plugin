@@ -20,9 +20,9 @@
                         </goals>
                         <configuration>
                             <packages>
-                                <package>brunch:1.4.4</package>
-                                <package>less:1.3.0</package>
-                                <package>recess:1.1.6</package>
+                                <package>colors:~1.1.0</package>
+                                <package>underscore</package>
+                                <package>jshint:^0.7.0</package>
                             </packages>
                         </configuration>
                     </execution>

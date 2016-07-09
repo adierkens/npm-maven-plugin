@@ -6,7 +6,7 @@
  * LICENSE.txt file.
  */
 
-def modules = ["abbrev", "colors", "less", "nopt", "recess", "underscore", "watch"];
+def modules = ["colors", "jshint", "underscore"];
 
 modules.each() {
     def f = new File(basedir, "src/main/resources/META-INF/" + it)

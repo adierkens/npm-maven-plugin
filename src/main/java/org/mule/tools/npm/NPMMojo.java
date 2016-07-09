@@ -22,7 +22,7 @@ import java.io.File;
  */
 public class NPMMojo extends AbstractJavascriptMojo {
 
-    private static final String NPM_REPO_URL_TAIL = "%s/%s";
+    private static final String NPM_REPO_URL_TAIL = "%s";
 
     /**
      * Where the resulting files will be downloaded.

@@ -209,7 +209,7 @@ public class NPMModule {
         for (Object o : allPotentialVersions) {
 			String potentialVersionString = o.toString();
 			Version potentialVersion = Version.valueOf(potentialVersionString);
-			if (potentialVersion.satisfies(versionSpecification)) {
+			if (potentialVersion.satisfies(versionSpecification) || potentialVersionString.equals(versionSpecification)) {
 				matchingVersions.add(potentialVersion);
 			}
 		}

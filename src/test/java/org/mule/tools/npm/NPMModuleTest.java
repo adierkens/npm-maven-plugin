@@ -14,10 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 
 public class NPMModuleTest {
@@ -43,5 +40,11 @@ public class NPMModuleTest {
     public void testDownloadJshint() throws Exception {
         NPMModule npmModule3 = NPMModule.fromQueryString(mock(Log.class), "jshint:0.8.1");
         npmModule3.saveToFileWithDependencies(new File("target/jshint-test"));
+    }
+
+    @Test
+    public void testDownloadPrerelease() throws Exception {
+        NPMModule npmModule4 = NPMModule.fromQueryString(mock(Log.class), "minnow-gpio:2.0.0-0");
+        npmModule4.saveToFileWithDependencies(new File("target/minnow-gpio"));
     }
 }
